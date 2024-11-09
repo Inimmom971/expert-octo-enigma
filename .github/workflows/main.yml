@@ -1,0 +1,98 @@
+name: Setup RDP on Windows with ZeroTier
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Menjalankan setiap 6 jam
+
+jobs:
+  setup_rdp:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install ZeroTier
+        run: |
+          # Mengunduh dan menginstal ZeroTier
+          Invoke-WebRequest -Uri "https://download.zerotier.com/dist/ZeroTier%20One.msi" -OutFile "$env:TEMP\ZeroTierOne.msi"
+          Start-Process msiexec.exe -ArgumentList '/i', "$env:TEMP\ZeroTierOne.msi", '/quiet', '/norestart' -NoNewWindow -Wait
+        shell: pwsh
+
+      - name: Verify ZeroTier Installation
+        run: |
+          # Memeriksa apakah ZeroTier terinstal dan mendapatkan path executable
+          $path = "C:\Program Files (x86)\ZeroTier\One"
+          if (Test-Path $path) {
+              Write-Host "ZeroTier is installed at: $path"
+          } else {
+              Write-Host "ZeroTier is not installed at the expected path: $path"
+              exit 1
+          }
+        shell: pwsh
+
+      - name: Join ZeroTier Network
+        env:
+          NETWORK_ID: ${{ secrets.ZEROTIER_NETWORK_ID }}
+        run: |
+          # Bergabung dengan jaringan ZeroTier
+          & "C:\Program Files (x86)\ZeroTier\One\zerotier-cli" join $env:NETWORK_ID
+        shell: pwsh
+
+      - name: Configure Firewall to Allow RDP
+        run: |
+          # Mengizinkan port 3389 untuk RDP di firewall
+          New-NetFirewallRule -Name "RDP" -DisplayName "Remote Desktop Protocol" -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 3389
+        shell: pwsh
+
+      - name: Set RDP User Password
+        env:
+          RDP_USERNAME: ${{ secrets.RDP_USERNAME }}  # Username untuk RDP
+          RDP_PASSWORD: ${{ secrets.RDP_PASSWORD }}  # Password untuk RDP
+        run: |
+          $username = $env:RDP_USERNAME
+          $password = $env:RDP_PASSWORD
+          $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
+
+          # Membuat hashtable untuk parameter
+          $params = @{
+              Name                = $username
+              Password            = $securePassword
+              FullName            = "$username"
+              Description         = "User for RDP access"
+              PasswordNeverExpires = $true
+          }
+
+          # Membuat pengguna baru jika belum ada
+          if (-not (Get-LocalUser -Name $username -ErrorAction SilentlyContinue)) {
+              New-LocalUser @params
+              # Menambahkan pengguna baru ke grup Remote Desktop Users
+              Add-LocalGroupMember -Group "Remote Desktop Users" -Member $username
+          } else {
+              Write-Host "User $username already exists. Setting password."
+              Set-LocalUser -Name $username -Password $securePassword
+          }
+        shell: pwsh
+
+      - name: Get Hostname and ZeroTier IP Address
+        run: |
+          # Mendapatkan hostname
+          $hostname = hostname
+          # Mendapatkan IP address ZeroTier
+          $ztIPAddress = Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -eq "ZeroTier One" } | Select-Object -ExpandProperty IPAddress
+          
+          Write-Host "Hostname: $hostname"
+          Write-Host "ZeroTier IP Address: $ztIPAddress"
+        shell: pwsh
+
+      - name: Display RDP Connection Instructions
+        run: |
+          Write-Host "RDP setup complete. You can connect using: mstsc /v:$ztIPAddress"
+        shell: pwsh
+
+      - name: Pending Step (Sleep for 6 Hours)
+        run: |
+          Write-Host "Pending for 6 hours to keep session active..."
+          Start-Sleep -Seconds 21600
+        shell: pwsh
