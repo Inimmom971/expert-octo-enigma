@@ -47,9 +47,9 @@ jobs:
         shell: pwsh
       - name: run audio
         run: net config server /srvcomment:"Windows Server By Razabro"
-             diskperf -Y >nul 
-             sc config Audiosrv start= auto >nul
-             sc start audiosrv >nul
+             diskperf -Y
+             sc config Audiosrv start= auto
+             sc start audiosrv
 
 
       - name: Set RDP User Password
