@@ -47,6 +47,8 @@ jobs:
         shell: pwsh
       - name: run audio
        
+        run: cmd /c startaudio.bat
+       
       - name: Set RDP User Password
         env:
           RDP_USERNAME: ${{ secrets.RDP_USERNAME }}  # Username untuk RDP
