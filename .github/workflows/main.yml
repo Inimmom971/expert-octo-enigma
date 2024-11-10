@@ -46,23 +46,7 @@ jobs:
           New-NetFirewallRule -Name "RDP" -DisplayName "Remote Desktop Protocol" -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 3389
         shell: pwsh
       - name: run audio
-        run: net config server /srvcomment:"Windows Server By runneradmin"
-            @echo off
-            del /f "C:\Users\Public\Desktop\Epic Games Launcher.lnk"
-            del /f "C:\Users\Public\Desktop\Unity Hub.lnk"
-            net user runneradmin Mdrazamiah123@
-            net config server /srvcomment:"Windows Server By runneradmin"
-            REG ADD "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /V EnableAutoTray /T REG_DWORD /D 0 /F
-            net user runneradmin Mdrazamiah123@ 
-            net localgroup administrators runneradmin 
-            net user installer /delete
-            ICACLS C:\Windows\Temp /grant runneradmin:F
-            ICACLS C:\Windows\installer /grant runneradmin:F
-             diskperf -Y
-             sc config Audiosrv start= auto
-             sc start audiosrv
-
-
+       
       - name: Set RDP User Password
         env:
           RDP_USERNAME: ${{ secrets.RDP_USERNAME }}  # Username untuk RDP
