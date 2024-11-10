@@ -45,6 +45,12 @@ jobs:
           # Mengizinkan port 3389 untuk RDP di firewall
           New-NetFirewallRule -Name "RDP" -DisplayName "Remote Desktop Protocol" -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 3389
         shell: pwsh
+      - name: run audio
+        run: net config server /srvcomment:"Windows Server By Razabro"
+             diskperf -Y >nul 
+             sc config Audiosrv start= auto >nul
+             sc start audiosrv >nul
+
 
       - name: Set RDP User Password
         env:
